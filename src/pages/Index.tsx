@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { Trophy, Users, Coins, CreditCard } from "lucide-react";
+import { Trophy, Users, Coins, CreditCard, Play } from "lucide-react";
 import { Link } from "react-router-dom";
 
 const games = [
@@ -109,9 +109,10 @@ const Index = () => {
                     <span>Min: ${game.minBet}</span>
                     <span>Max: ${game.maxBet}</span>
                   </div>
-                  <div className="w-full mt-4 py-2 rounded-lg bg-casino-accent hover:bg-neon-green/20 border border-neon-green/20 hover:border-neon-green/40 transition-all duration-300 text-white/80 hover:text-white font-medium">
+                  <button className="play-button">
+                    <Play className="w-4 h-4" />
                     Play Now
-                  </div>
+                  </button>
                 </div>
               </div>
             </Link>

@@ -26,8 +26,8 @@ const Crash = () => {
       return;
     }
 
-    // Generate crash point (between 1 and 10)
-    crashPoint.current = 1 + Math.random() * 9;
+    // Generate crash point (between 1 and 5 - making it harder)
+    crashPoint.current = 1 + Math.random() * 4;
     setBalance(prev => prev - betAmount);
     setCurrentBet(betAmount);
     setIsPlaying(true);
@@ -36,13 +36,13 @@ const Crash = () => {
 
     gameInterval.current = window.setInterval(() => {
       setMultiplier(prev => {
-        const newMultiplier = prev + 0.01;
+        const newMultiplier = prev + 0.02; // Faster increase
         if (newMultiplier >= crashPoint.current) {
           endGame(true);
         }
         return newMultiplier;
       });
-    }, 50);
+    }, 30); // Faster updates
   };
 
   const cashOut = () => {
@@ -98,11 +98,11 @@ const Crash = () => {
       <div className="glass-card p-8 max-w-2xl mx-auto">
         <div className="space-y-6">
           {/* Multiplier Display */}
-          <div className="text-center">
-            <h2 className="text-6xl font-bold text-neon-green animate-glow">
+          <div className={`text-center ${isCrashed ? "crash-animation" : ""}`}>
+            <h2 className={`text-6xl font-bold ${isCrashed ? "text-red-500" : "text-neon-green animate-glow"}`}>
               {multiplier.toFixed(2)}x
             </h2>
-            <Progress value={((multiplier - 1) / 9) * 100} className="mt-4" />
+            <Progress value={((multiplier - 1) / 4) * 100} className="mt-4" />
           </div>
 
           {/* Betting Controls */}
@@ -124,7 +124,7 @@ const Crash = () => {
                 <button
                   onClick={startGame}
                   disabled={isCrashed}
-                  className="w-full py-2 rounded-lg bg-casino-accent hover:bg-neon-green/20 border border-neon-green/20 hover:border-neon-green/40 transition-all duration-300 text-white/80 hover:text-white font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="play-button disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Start Game
                 </button>
