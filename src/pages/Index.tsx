@@ -1,53 +1,44 @@
-
 import { useState, useEffect } from "react";
 import { Trophy, Users, Coins, CreditCard, Play } from "lucide-react";
 import { Link } from "react-router-dom";
-
-const games = [
-  {
-    id: 1,
-    title: "Crash",
-    description: "Watch the multiplier grow and cash out before it crashes",
-    minBet: 5,
-    maxBet: 1000,
-    players: 128,
-    path: "/crash"
-  },
-  {
-    id: 2,
-    title: "Roulette",
-    description: "Classic casino game with CS skins",
-    minBet: 10,
-    maxBet: 2000,
-    players: 64,
-    path: "/roulette"
-  },
-  {
-    id: 3,
-    title: "Coinflip",
-    description: "50/50 chance to double your skins",
-    minBet: 1,
-    maxBet: 500,
-    players: 256,
-    path: "/coinflip"
-  },
-  {
-    id: 4,
-    title: "Jackpot",
-    description: "Join the pot and win big",
-    minBet: 20,
-    maxBet: 5000,
-    players: 32,
-    path: "/jackpot"
-  },
-];
-
+const games = [{
+  id: 1,
+  title: "Crash",
+  description: "Watch the multiplier grow and cash out before it crashes",
+  minBet: 5,
+  maxBet: 1000,
+  players: 128,
+  path: "/crash"
+}, {
+  id: 2,
+  title: "Roulette",
+  description: "Classic casino game with CS skins",
+  minBet: 10,
+  maxBet: 2000,
+  players: 64,
+  path: "/roulette"
+}, {
+  id: 3,
+  title: "Coinflip",
+  description: "50/50 chance to double your skins",
+  minBet: 1,
+  maxBet: 500,
+  players: 256,
+  path: "/coinflip"
+}, {
+  id: 4,
+  title: "Jackpot",
+  description: "Join the pot and win big",
+  minBet: 20,
+  maxBet: 5000,
+  players: 32,
+  path: "/jackpot"
+}];
 const Index = () => {
   const [balance, setBalance] = useState(1000);
   const [activePlayers, setActivePlayers] = useState(1337);
   const [totalWins, setTotalWins] = useState(0);
   const [totalBets, setTotalBets] = useState(0);
-
   useEffect(() => {
     // Update stats every second
     const interval = setInterval(() => {
@@ -55,16 +46,13 @@ const Index = () => {
       const bets = Number(localStorage.getItem('totalBets') || '0');
       setTotalWins(wins);
       setTotalBets(bets);
-      
+
       // Update active players randomly for effect
       setActivePlayers(prev => prev + Math.floor(Math.random() * 3) - 1);
     }, 1000);
-
     return () => clearInterval(interval);
   }, []);
-
-  return (
-    <div className="min-h-screen w-full container py-8 space-y-8">
+  return <div className="min-h-screen w-full container py-8 space-y-8">
       {/* Header with Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="stats-card">
@@ -106,12 +94,11 @@ const Index = () => {
       </div>
 
       {/* Games Grid */}
-      <div>
+      <div className="py-0">
         <h2 className="text-2xl font-bold mb-6">Featured Games</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {games.map((game) => (
-            <Link key={game.id} to={game.path} className="group">
-              <div className="game-card">
+          {games.map(game => <Link key={game.id} to={game.path} className="group">
+              <div className="game-card rounded-2xl bg-neutral-900 hover:bg-neutral-800">
                 <div className="flex justify-between items-start">
                   <h3 className="text-xl font-semibold group-hover:text-neon-green transition-colors">
                     {game.title}
@@ -130,29 +117,23 @@ const Index = () => {
                   </button>
                 </div>
               </div>
-            </Link>
-          ))}
+            </Link>)}
         </div>
       </div>
 
       {/* Featured Skins */}
-      <div>
+      <div className="mx-0">
         <h2 className="text-2xl font-bold mb-6">Featured Skins</h2>
         <div className="glass-card p-6">
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <div
-                key={i}
-                className="aspect-square rounded-lg bg-casino-accent/50 animate-float"
-              >
+            {Array.from({
+            length: 6
+          }).map((_, i) => <div key={i} className="aspect-square rounded-lg bg-casino-accent/50 animate-float">
                 {/* Skin placeholder */}
-              </div>
-            ))}
+              </div>)}
           </div>
         </div>
       </div>
-    </div>
-  );
+    </div>;
 };
-
 export default Index;
