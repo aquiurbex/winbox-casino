@@ -12,6 +12,7 @@ const Crash = () => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isCrashed, setIsCrashed] = useState(false);
   const [currentBet, setCurrentBet] = useState(0);
+  const [points, setPoints] = useState<{ x: number; y: number }[]>([]);
   const gameInterval = useRef<number | null>(null);
   const crashPoint = useRef(0);
   const startTime = useRef<number>(0);
@@ -32,18 +33,20 @@ const Crash = () => {
     setIsPlaying(true);
     setIsCrashed(false);
     setMultiplier(1);
+    setPoints([{ x: 0, y: 1 }]);
     startTime.current = Date.now();
 
     gameInterval.current = window.setInterval(() => {
       const elapsed = (Date.now() - startTime.current) / 1000;
       setMultiplier(prev => {
-        const newMultiplier = 1 + (Math.pow(elapsed, 1.5) / 2);
+        const newMultiplier = 1 + (Math.pow(elapsed, 1.2) / 4);
         if (newMultiplier >= crashPoint.current) {
           endGame(true);
         }
+        setPoints(prev => [...prev, { x: elapsed, y: newMultiplier }]);
         return newMultiplier;
       });
-    }, 16);
+    }, 50);
   };
 
   const cashOut = () => {
@@ -97,28 +100,44 @@ const Crash = () => {
       <div className="glass-card p-8 max-w-2xl mx-auto">
         <div className="space-y-6">
           <div 
-            className={`text-center transform transition-transform ${
-              isPlaying ? "translate-y-0" : "translate-y-2"
-            } ${isCrashed ? "crash-animation" : ""}`}
+            className={`h-64 w-full relative ${isCrashed ? "crash-animation" : ""}`}
           >
-            <h2 
-              className={`text-6xl font-bold ${
-                isCrashed 
-                  ? "text-red-500" 
-                  : isPlaying 
-                    ? "text-neon-green animate-glow scale-110 transition-transform duration-300" 
-                    : "text-white"
-              }`}
+            <svg
+              className="w-full h-full"
+              viewBox="0 0 100 100"
+              preserveAspectRatio="none"
             >
-              {multiplier.toFixed(2)}x
-            </h2>
-            <Progress 
-              value={((multiplier - 1) / 4) * 100} 
-              className={`mt-4 transition-all duration-300 ${
-                isPlaying ? "opacity-100" : "opacity-60"
-              }`}
-            />
+              <path
+                d={points.map((point, i) => 
+                  `${i === 0 ? "M" : "L"} ${point.x * 10} ${100 - point.y * 20}`
+                ).join(" ")}
+                stroke={isCrashed ? "rgb(239, 68, 68)" : "rgb(0, 255, 156)"}
+                strokeWidth="0.5"
+                fill="none"
+                className="transition-all duration-300"
+              />
+            </svg>
+            <div className="absolute top-0 left-0 w-full h-full flex items-center justify-center">
+              <h2 
+                className={`text-6xl font-bold ${
+                  isCrashed 
+                    ? "text-red-500" 
+                    : isPlaying 
+                      ? "text-neon-green animate-glow scale-110 transition-transform duration-300" 
+                      : "text-white"
+                }`}
+              >
+                {multiplier.toFixed(2)}x
+              </h2>
+            </div>
           </div>
+
+          <Progress 
+            value={((multiplier - 1) / 4) * 100} 
+            className={`transition-all duration-300 ${
+              isPlaying ? "opacity-100" : "opacity-60"
+            }`}
+          />
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">

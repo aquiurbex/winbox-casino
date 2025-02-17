@@ -23,13 +23,21 @@ const Coinflip = () => {
     setIsFlipping(true);
     setBalance(prev => prev - betAmount);
 
+    // Store bet amount and selected side in localStorage for stats
+    const totalBets = Number(localStorage.getItem('totalBets') || '0') + betAmount;
+    localStorage.setItem('totalBets', totalBets.toString());
+
     setTimeout(() => {
       const result = Math.random() < 0.5 ? "heads" : "tails";
       
       if (result === selectedSide) {
-        const winAmount = betAmount * 1.9; // 1.9x payout
+        const winAmount = betAmount * 1.9;
         setBalance(prev => prev + winAmount);
         toast.success(`You won $${winAmount.toFixed(2)}!`);
+        
+        // Store win amount in localStorage for stats
+        const totalWins = Number(localStorage.getItem('totalWins') || '0') + winAmount;
+        localStorage.setItem('totalWins', totalWins.toString());
       } else {
         toast.error(`Lost! Coin landed on ${result}`);
       }
@@ -66,18 +74,26 @@ const Coinflip = () => {
           {/* Coin */}
           <div className="flex justify-center">
             <div 
-              className={`w-48 h-48 rounded-full bg-yellow-500 border-4 border-yellow-600 flex items-center justify-center text-2xl font-bold
-                ${isFlipping ? "animate-[spin_2s_ease-in-out]" : ""}
+              className={`w-48 h-48 rounded-full bg-yellow-500 border-4 border-yellow-600 flex items-center justify-center text-2xl font-bold transform-gpu perspective-1000
+                ${isFlipping ? "animate-[flip-heads_2s_ease-in-out]" : ""}
                 ${selectedSide === "heads" ? "ring-2 ring-neon-green" : ""}
               `}
+              style={{
+                transformStyle: 'preserve-3d',
+                backfaceVisibility: 'hidden'
+              }}
             >
               Heads
             </div>
             <div 
-              className={`w-48 h-48 rounded-full bg-yellow-700 border-4 border-yellow-800 flex items-center justify-center text-2xl font-bold ml-8
-                ${isFlipping ? "animate-[spin_2s_ease-in-out]" : ""}
+              className={`w-48 h-48 rounded-full bg-yellow-700 border-4 border-yellow-800 flex items-center justify-center text-2xl font-bold ml-8 transform-gpu perspective-1000
+                ${isFlipping ? "animate-[flip-tails_2s_ease-in-out]" : ""}
                 ${selectedSide === "tails" ? "ring-2 ring-neon-green" : ""}
               `}
+              style={{
+                transformStyle: 'preserve-3d',
+                backfaceVisibility: 'hidden'
+              }}
             >
               Tails
             </div>

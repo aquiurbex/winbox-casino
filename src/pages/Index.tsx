@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Trophy, Users, Coins, CreditCard, Play } from "lucide-react";
 import { Link } from "react-router-dom";
 
@@ -45,6 +45,23 @@ const games = [
 const Index = () => {
   const [balance, setBalance] = useState(1000);
   const [activePlayers, setActivePlayers] = useState(1337);
+  const [totalWins, setTotalWins] = useState(0);
+  const [totalBets, setTotalBets] = useState(0);
+
+  useEffect(() => {
+    // Update stats every second
+    const interval = setInterval(() => {
+      const wins = Number(localStorage.getItem('totalWins') || '0');
+      const bets = Number(localStorage.getItem('totalBets') || '0');
+      setTotalWins(wins);
+      setTotalBets(bets);
+      
+      // Update active players randomly for effect
+      setActivePlayers(prev => prev + Math.floor(Math.random() * 3) - 1);
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, []);
 
   return (
     <div className="min-h-screen w-full container py-8 space-y-8">
@@ -65,7 +82,7 @@ const Index = () => {
           </div>
           <div>
             <p className="text-sm text-white/60">Your Balance</p>
-            <p className="text-lg font-semibold">${balance}</p>
+            <p className="text-lg font-semibold">${balance.toFixed(2)}</p>
           </div>
         </div>
         <div className="stats-card">
@@ -74,7 +91,7 @@ const Index = () => {
           </div>
           <div>
             <p className="text-sm text-white/60">Total Winnings</p>
-            <p className="text-lg font-semibold">$12,345</p>
+            <p className="text-lg font-semibold">${totalWins.toFixed(2)}</p>
           </div>
         </div>
         <div className="stats-card">
@@ -82,10 +99,8 @@ const Index = () => {
             <CreditCard className="w-5 h-5 text-neon-green" />
           </div>
           <div>
-            <p className="text-sm text-white/60">Deposit</p>
-            <button className="text-lg font-semibold hover:text-neon-green transition-colors">
-              Add Funds
-            </button>
+            <p className="text-sm text-white/60">Total Bets</p>
+            <p className="text-lg font-semibold">${totalBets.toFixed(2)}</p>
           </div>
         </div>
       </div>
