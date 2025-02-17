@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import Crash from "./pages/Crash";
 import Roulette from "./pages/Roulette";
+import Coinflip from "./pages/Coinflip";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -21,6 +22,7 @@ const App = () => (
           <Route path="/" element={<Index />} />
           <Route path="/crash" element={<Crash />} />
           <Route path="/roulette" element={<Roulette />} />
+          <Route path="/coinflip" element={<Coinflip />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

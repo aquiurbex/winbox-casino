@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from "react";
 import { ArrowLeft, Coins } from "lucide-react";
 import { Link } from "react-router-dom";
@@ -15,6 +14,7 @@ const Crash = () => {
   const [currentBet, setCurrentBet] = useState(0);
   const gameInterval = useRef<number | null>(null);
   const crashPoint = useRef(0);
+  const startTime = useRef<number>(0);
 
   const startGame = () => {
     if (betAmount > balance) {
@@ -26,23 +26,24 @@ const Crash = () => {
       return;
     }
 
-    // Generate crash point (between 1 and 5 - making it harder)
     crashPoint.current = 1 + Math.random() * 4;
     setBalance(prev => prev - betAmount);
     setCurrentBet(betAmount);
     setIsPlaying(true);
     setIsCrashed(false);
     setMultiplier(1);
+    startTime.current = Date.now();
 
     gameInterval.current = window.setInterval(() => {
+      const elapsed = (Date.now() - startTime.current) / 1000;
       setMultiplier(prev => {
-        const newMultiplier = prev + 0.02; // Faster increase
+        const newMultiplier = 1 + (Math.pow(elapsed, 1.5) / 2);
         if (newMultiplier >= crashPoint.current) {
           endGame(true);
         }
         return newMultiplier;
       });
-    }, 30); // Faster updates
+    }, 16);
   };
 
   const cashOut = () => {
@@ -74,7 +75,6 @@ const Crash = () => {
 
   return (
     <div className="min-h-screen w-full container py-8 space-y-8">
-      {/* Header */}
       <div className="flex justify-between items-center">
         <Link
           to="/"
@@ -94,18 +94,32 @@ const Crash = () => {
         </div>
       </div>
 
-      {/* Game Area */}
       <div className="glass-card p-8 max-w-2xl mx-auto">
         <div className="space-y-6">
-          {/* Multiplier Display */}
-          <div className={`text-center ${isCrashed ? "crash-animation" : ""}`}>
-            <h2 className={`text-6xl font-bold ${isCrashed ? "text-red-500" : "text-neon-green animate-glow"}`}>
+          <div 
+            className={`text-center transform transition-transform ${
+              isPlaying ? "translate-y-0" : "translate-y-2"
+            } ${isCrashed ? "crash-animation" : ""}`}
+          >
+            <h2 
+              className={`text-6xl font-bold ${
+                isCrashed 
+                  ? "text-red-500" 
+                  : isPlaying 
+                    ? "text-neon-green animate-glow scale-110 transition-transform duration-300" 
+                    : "text-white"
+              }`}
+            >
               {multiplier.toFixed(2)}x
             </h2>
-            <Progress value={((multiplier - 1) / 4) * 100} className="mt-4" />
+            <Progress 
+              value={((multiplier - 1) / 4) * 100} 
+              className={`mt-4 transition-all duration-300 ${
+                isPlaying ? "opacity-100" : "opacity-60"
+              }`}
+            />
           </div>
 
-          {/* Betting Controls */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <label className="text-sm text-white/60">Bet Amount</label>
@@ -139,7 +153,6 @@ const Crash = () => {
             </div>
           </div>
 
-          {/* Game Status */}
           {isCrashed && (
             <div className="text-center text-red-500 font-semibold animate-fade-in">
               Crashed at {crashPoint.current.toFixed(2)}x
