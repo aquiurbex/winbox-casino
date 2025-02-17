@@ -4,7 +4,6 @@ import { Link } from "react-router-dom";
 import { Progress } from "@/components/ui/progress";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-
 const Crash = () => {
   const [balance, setBalance] = useState(1000);
   const [betAmount, setBetAmount] = useState(10);
@@ -12,11 +11,13 @@ const Crash = () => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isCrashed, setIsCrashed] = useState(false);
   const [currentBet, setCurrentBet] = useState(0);
-  const [points, setPoints] = useState<{ x: number; y: number }[]>([]);
+  const [points, setPoints] = useState<{
+    x: number;
+    y: number;
+  }[]>([]);
   const gameInterval = useRef<number | null>(null);
   const crashPoint = useRef(0);
   const startTime = useRef<number>(0);
-
   const startGame = () => {
     if (betAmount > balance) {
       toast.error("Insufficient balance");
@@ -26,29 +27,32 @@ const Crash = () => {
       toast.error("Minimum bet is $1");
       return;
     }
-
     crashPoint.current = 1 + Math.random() * 4;
     setBalance(prev => prev - betAmount);
     setCurrentBet(betAmount);
     setIsPlaying(true);
     setIsCrashed(false);
     setMultiplier(1);
-    setPoints([{ x: 0, y: 1 }]);
+    setPoints([{
+      x: 0,
+      y: 1
+    }]);
     startTime.current = Date.now();
-
     gameInterval.current = window.setInterval(() => {
       const elapsed = (Date.now() - startTime.current) / 1000;
       setMultiplier(prev => {
-        const newMultiplier = 1 + (Math.pow(elapsed, 1.2) / 4);
+        const newMultiplier = 1 + Math.pow(elapsed, 1.2) / 4;
         if (newMultiplier >= crashPoint.current) {
           endGame(true);
         }
-        setPoints(prev => [...prev, { x: elapsed, y: newMultiplier }]);
+        setPoints(prev => [...prev, {
+          x: elapsed,
+          y: newMultiplier
+        }]);
         return newMultiplier;
       });
     }, 50);
   };
-
   const cashOut = () => {
     if (!isPlaying) return;
     const winAmount = currentBet * multiplier;
@@ -56,7 +60,6 @@ const Crash = () => {
     toast.success(`Cashed out $${winAmount.toFixed(2)}!`);
     endGame(false);
   };
-
   const endGame = (crashed: boolean) => {
     if (gameInterval.current) {
       clearInterval(gameInterval.current);
@@ -67,7 +70,6 @@ const Crash = () => {
       toast.error("Crashed!");
     }
   };
-
   useEffect(() => {
     return () => {
       if (gameInterval.current) {
@@ -75,14 +77,9 @@ const Crash = () => {
       }
     };
   }, []);
-
-  return (
-    <div className="min-h-screen w-full container py-8 space-y-8">
+  return <div className="min-h-screen w-full container py-8 space-y-8">
       <div className="flex justify-between items-center">
-        <Link
-          to="/"
-          className="flex items-center gap-2 text-white/60 hover:text-white transition-colors"
-        >
+        <Link to="/" className="flex items-center gap-2 text-white/60 hover:text-white transition-colors">
           <ArrowLeft className="w-4 h-4" />
           Back to Games
         </Link>
@@ -99,88 +96,38 @@ const Crash = () => {
 
       <div className="glass-card p-8 max-w-2xl mx-auto">
         <div className="space-y-6">
-          <div 
-            className={`h-64 w-full relative ${isCrashed ? "crash-animation" : ""}`}
-          >
-            <svg
-              className="w-full h-full"
-              viewBox="0 0 100 100"
-              preserveAspectRatio="none"
-            >
-              <path
-                d={points.map((point, i) => 
-                  `${i === 0 ? "M" : "L"} ${point.x * 10} ${100 - point.y * 20}`
-                ).join(" ")}
-                stroke={isCrashed ? "rgb(239, 68, 68)" : "rgb(0, 255, 156)"}
-                strokeWidth="0.5"
-                fill="none"
-                className="transition-all duration-300"
-              />
+          <div className={`h-64 w-full relative ${isCrashed ? "crash-animation" : ""}`}>
+            <svg className="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
+              <path d={points.map((point, i) => `${i === 0 ? "M" : "L"} ${point.x * 10} ${100 - point.y * 20}`).join(" ")} stroke={isCrashed ? "rgb(239, 68, 68)" : "rgb(0, 255, 156)"} strokeWidth="0.5" fill="none" className="transition-all duration-300" />
             </svg>
             <div className="absolute top-0 left-0 w-full h-full flex items-center justify-center">
-              <h2 
-                className={`text-6xl font-bold ${
-                  isCrashed 
-                    ? "text-red-500" 
-                    : isPlaying 
-                      ? "text-neon-green animate-glow scale-110 transition-transform duration-300" 
-                      : "text-white"
-                }`}
-              >
+              <h2 className={`text-6xl font-bold ${isCrashed ? "text-red-500" : isPlaying ? "text-neon-green animate-glow scale-110 transition-transform duration-300" : "text-white"}`}>
                 {multiplier.toFixed(2)}x
               </h2>
             </div>
           </div>
 
-          <Progress 
-            value={((multiplier - 1) / 4) * 100} 
-            className={`transition-all duration-300 ${
-              isPlaying ? "opacity-100" : "opacity-60"
-            }`}
-          />
+          <Progress value={(multiplier - 1) / 4 * 100} className={`transition-all duration-300 ${isPlaying ? "opacity-100" : "opacity-60"}`} />
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <label className="text-sm text-white/60">Bet Amount</label>
-              <Input
-                type="number"
-                value={betAmount}
-                onChange={(e) => setBetAmount(Number(e.target.value))}
-                min={1}
-                max={balance}
-                disabled={isPlaying}
-                className="bg-casino-accent"
-              />
+              <Input type="number" value={betAmount} onChange={e => setBetAmount(Number(e.target.value))} min={1} max={balance} disabled={isPlaying} className="bg-casino-accent rounded-lg" />
             </div>
             <div className="flex items-end">
-              {!isPlaying ? (
-                <button
-                  onClick={startGame}
-                  disabled={isCrashed}
-                  className="play-button disabled:opacity-50 disabled:cursor-not-allowed"
-                >
+              {!isPlaying ? <button onClick={startGame} disabled={isCrashed} className="play-button disabled:opacity-50 disabled:cursor-not-allowed">
                   Start Game
-                </button>
-              ) : (
-                <button
-                  onClick={cashOut}
-                  className="w-full py-2 rounded-lg bg-neon-green/20 border border-neon-green/40 hover:bg-neon-green/30 transition-all duration-300 text-white font-medium animate-pulse"
-                >
+                </button> : <button onClick={cashOut} className="w-full py-2 rounded-lg bg-neon-green/20 border border-neon-green/40 hover:bg-neon-green/30 transition-all duration-300 text-white font-medium animate-pulse">
                   Cash Out
-                </button>
-              )}
+                </button>}
             </div>
           </div>
 
-          {isCrashed && (
-            <div className="text-center text-red-500 font-semibold animate-fade-in">
+          {isCrashed && <div className="text-center text-red-500 font-semibold animate-fade-in">
               Crashed at {crashPoint.current.toFixed(2)}x
-            </div>
-          )}
+            </div>}
         </div>
       </div>
-    </div>
-  );
+    </div>;
 };
-
 export default Crash;
