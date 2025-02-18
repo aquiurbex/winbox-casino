@@ -20,13 +20,15 @@ interface GameState {
   }
 }
 
+interface GameHistory {
+  game_type: 'crash' | 'roulette' | 'wheel'
+  result: number
+  created_at: string
+}
+
 interface GameContextType {
   gameState: GameState
-  history: {
-    game_type: 'crash' | 'roulette' | 'wheel'
-    result: number
-    created_at: string
-  }[]
+  history: GameHistory[]
 }
 
 const GameContext = createContext<GameContextType | null>(null)
@@ -50,7 +52,7 @@ export const GameProvider = ({ children }: { children: React.ReactNode }) => {
     }
   })
   
-  const [history, setHistory] = useState<GameContextType['history']>([])
+  const [history, setHistory] = useState<GameHistory[]>([])
 
   useEffect(() => {
     // Connect to game coordinator
@@ -71,7 +73,7 @@ export const GameProvider = ({ children }: { children: React.ReactNode }) => {
       .limit(50)
       .then(({ data }) => {
         if (data) {
-          setHistory(data)
+          setHistory(data as GameHistory[])
         }
       })
 
@@ -85,7 +87,7 @@ export const GameProvider = ({ children }: { children: React.ReactNode }) => {
           table: 'game_history'
         },
         (payload) => {
-          setHistory(prev => [payload.new, ...prev].slice(0, 50))
+          setHistory(prev => [payload.new as GameHistory, ...prev].slice(0, 50))
         }
       )
       .subscribe()
