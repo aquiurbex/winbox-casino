@@ -41,12 +41,12 @@ let gameState: GameState = {
   roulette: {
     status: 'waiting',
     lastResult: 0,
-    nextSpinTime: Date.now() + 15000
+    nextSpinTime: Date.now() + 20000
   },
   wheel: {
     status: 'waiting',
     lastResult: 0,
-    nextSpinTime: Date.now() + 15000
+    nextSpinTime: Date.now() + 20000
   }
 }
 
@@ -76,7 +76,6 @@ function broadcast(data: any) {
   const encodedMessage = encoder.encode(message)
   broadcasts.forEach((response) => {
     try {
-      // @ts-ignore - stream exists but TS doesn't know about it
       response.body?.getWriter().write(encodedMessage)
     } catch (err) {
       console.error('Failed to write to stream:', err)
@@ -118,7 +117,7 @@ async function gameLoop() {
       gameState.roulette = {
         status: 'complete',
         lastResult: result,
-        nextSpinTime: now + 15000
+        nextSpinTime: now + 20000
       }
       setTimeout(() => {
         gameState.roulette.status = 'waiting'
@@ -135,7 +134,7 @@ async function gameLoop() {
       gameState.wheel = {
         status: 'complete',
         lastResult: result,
-        nextSpinTime: now + 15000
+        nextSpinTime: now + 20000
       }
       setTimeout(() => {
         gameState.wheel.status = 'waiting'
@@ -148,7 +147,6 @@ async function gameLoop() {
 }
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
   }
@@ -156,11 +154,9 @@ serve(async (req) => {
   try {
     const url = new URL(req.url)
     
-    // SSE endpoint for game state updates
     if (url.pathname === '/game-state') {
       const id = crypto.randomUUID()
       const stream = new TransformStream()
-      const writer = stream.writable.getWriter()
       const response = new Response(stream.readable, {
         headers: {
           ...corsHeaders,
@@ -172,12 +168,10 @@ serve(async (req) => {
       
       broadcasts.set(id, response)
       
-      // Start game loop if it's not running
       if (broadcasts.size === 1) {
         gameLoop().catch(console.error)
       }
       
-      // Clean up when client disconnects
       response.body?.addEventListener('close', () => {
         broadcasts.delete(id)
       })
