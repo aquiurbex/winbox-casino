@@ -197,7 +197,30 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      cash_out: {
+        Args: {
+          amount: number
+          game: Database["public"]["Enums"]["game_type"]
+        }
+        Returns: boolean
+      }
+      claim_daily_reward: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
+      place_bet: {
+        Args: {
+          amount: number
+          game: Database["public"]["Enums"]["game_type"]
+        }
+        Returns: boolean
+      }
+      use_promo_code: {
+        Args: {
+          code_input: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
       game_type: "crash" | "roulette" | "wheel"
