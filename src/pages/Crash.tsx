@@ -85,7 +85,7 @@ const Crash = () => {
       return
     }
 
-    const { error } = await supabase.rpc<PlaceBetParams>('place_bet', {
+    const { error } = await supabase.rpc<PlaceBetParams, { success: boolean }>('place_bet', {
       amount: betAmount,
       game: 'crash'
     })
@@ -105,7 +105,7 @@ const Crash = () => {
 
     const winAmount = Math.floor(currentBet * gameState.crash.multiplier)
     
-    const { error } = await supabase.rpc<CashOutParams>('cash_out', {
+    const { error } = await supabase.rpc<CashOutParams, { success: boolean }>('cash_out', {
       amount: winAmount,
       game: 'crash'
     })
