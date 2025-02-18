@@ -9,7 +9,189 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      game_history: {
+        Row: {
+          created_at: string
+          game_type: Database["public"]["Enums"]["game_type"]
+          id: string
+          result: number
+        }
+        Insert: {
+          created_at?: string
+          game_type: Database["public"]["Enums"]["game_type"]
+          id?: string
+          result: number
+        }
+        Update: {
+          created_at?: string
+          game_type?: Database["public"]["Enums"]["game_type"]
+          id?: string
+          result?: number
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          coins: number | null
+          created_at: string
+          id: string
+          last_seen_at: string
+          steam_id: string | null
+          username: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          coins?: number | null
+          created_at?: string
+          id: string
+          last_seen_at?: string
+          steam_id?: string | null
+          username?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          coins?: number | null
+          created_at?: string
+          id?: string
+          last_seen_at?: string
+          steam_id?: string | null
+          username?: string | null
+        }
+        Relationships: []
+      }
+      promo_codes: {
+        Row: {
+          code: string
+          coins: number
+          created_at: string
+          expires_at: string | null
+          id: string
+          max_uses: number | null
+          uses: number | null
+        }
+        Insert: {
+          code: string
+          coins: number
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          max_uses?: number | null
+          uses?: number | null
+        }
+        Update: {
+          code?: string
+          coins?: number
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          max_uses?: number | null
+          uses?: number | null
+        }
+        Relationships: []
+      }
+      skins: {
+        Row: {
+          created_at: string
+          id: string
+          image_url: string
+          name: string
+          price: number
+          rarity: Database["public"]["Enums"]["skin_rarity"]
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          image_url: string
+          name: string
+          price: number
+          rarity: Database["public"]["Enums"]["skin_rarity"]
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          image_url?: string
+          name?: string
+          price?: number
+          rarity?: Database["public"]["Enums"]["skin_rarity"]
+        }
+        Relationships: []
+      }
+      used_promo_codes: {
+        Row: {
+          code_id: string
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          code_id: string
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          code_id?: string
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "used_promo_codes_code_id_fkey"
+            columns: ["code_id"]
+            isOneToOne: false
+            referencedRelation: "promo_codes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "used_promo_codes_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_skins: {
+        Row: {
+          claimed: boolean | null
+          created_at: string
+          id: string
+          skin_id: string
+          user_id: string
+        }
+        Insert: {
+          claimed?: boolean | null
+          created_at?: string
+          id?: string
+          skin_id: string
+          user_id: string
+        }
+        Update: {
+          claimed?: boolean | null
+          created_at?: string
+          id?: string
+          skin_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_skins_skin_id_fkey"
+            columns: ["skin_id"]
+            isOneToOne: false
+            referencedRelation: "skins"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_skins_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -18,7 +200,8 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      game_type: "crash" | "roulette" | "wheel"
+      skin_rarity: "common" | "uncommon" | "rare" | "epic" | "legendary"
     }
     CompositeTypes: {
       [_ in never]: never
