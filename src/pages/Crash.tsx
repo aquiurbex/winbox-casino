@@ -8,16 +8,6 @@ import { toast } from "sonner";
 import { useGame } from "@/contexts/GameContext";
 import { supabase } from "@/integrations/supabase/client";
 
-interface PlaceBetParams {
-  amount: number;
-  game: 'crash' | 'roulette' | 'wheel';
-}
-
-interface CashOutParams {
-  amount: number;
-  game: 'crash' | 'roulette' | 'wheel';
-}
-
 const Crash = () => {
   const { gameState } = useGame();
   const [balance, setBalance] = useState(0);
@@ -85,7 +75,7 @@ const Crash = () => {
       return
     }
 
-    const { error } = await supabase.rpc<PlaceBetParams, { success: boolean }>('place_bet', {
+    const { error } = await supabase.rpc('place_bet', {
       amount: betAmount,
       game: 'crash'
     })
@@ -105,7 +95,7 @@ const Crash = () => {
 
     const winAmount = Math.floor(currentBet * gameState.crash.multiplier)
     
-    const { error } = await supabase.rpc<CashOutParams, { success: boolean }>('cash_out', {
+    const { error } = await supabase.rpc('cash_out', {
       amount: winAmount,
       game: 'crash'
     })
