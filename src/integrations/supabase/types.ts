@@ -197,6 +197,13 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      award_kill_coins: {
+        Args: {
+          steam_id: string
+          amount: number
+        }
+        Returns: boolean
+      }
       cash_out: {
         Args: {
           amount: number
