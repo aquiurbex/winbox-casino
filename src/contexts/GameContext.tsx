@@ -1,3 +1,4 @@
+
 import { createContext, useContext, useEffect, useState } from 'react'
 import { supabase } from '@/integrations/supabase/client'
 
@@ -39,7 +40,7 @@ export const GameProvider = ({ children }: { children: React.ReactNode }) => {
       status: 'waiting',
       multiplier: 1,
       startTime: Date.now() + 20000, // Start in 20 seconds
-      crashPoint: generateCrashPoint()
+      crashPoint: 2.00
     },
     roulette: {
       status: 'waiting',
