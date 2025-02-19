@@ -1,8 +1,37 @@
 
+import { useEffect } from "react";
 import { ArrowLeft } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 const Auth = () => {
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (session) {
+        navigate('/');
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [navigate]);
+
+  const loginWithSteam = async () => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'steam',
+      options: {
+        redirectTo: window.location.origin
+      }
+    });
+
+    if (error) {
+      toast.error("Failed to login with Steam");
+    }
+  };
+
   return (
     <div className="min-h-screen w-full container py-8 space-y-8">
       <div className="flex items-center">
@@ -13,8 +42,10 @@ const Auth = () => {
       </div>
 
       <div className="glass-card p-8 max-w-md mx-auto">
-        <h1 className="text-2xl font-bold text-center mb-8">Login / Register</h1>
-        <p className="text-center text-white/60">Authentication coming soon!</p>
+        <h1 className="text-2xl font-bold text-center mb-8">Login</h1>
+        <Button onClick={loginWithSteam} className="w-full">
+          Login with Steam
+        </Button>
       </div>
     </div>
   );

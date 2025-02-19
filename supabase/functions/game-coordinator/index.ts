@@ -19,50 +19,73 @@ Deno.serve(async (req) => {
   // Start EventSource stream
   const stream = new ReadableStream({
     start(controller) {
-      let crashPoint = 2.00 // Initial crash point
-      let multiplier = 1.00
-      let startTime = Date.now()
-      let status = 'waiting'
+      let gameState = {
+        crash: {
+          status: 'waiting',
+          multiplier: 1.00,
+          startTime: Date.now() + 20000,
+          crashPoint: 2.00
+        },
+        roulette: {
+          status: 'waiting',
+          lastResult: 0,
+          nextSpinTime: Date.now() + 20000
+        },
+        wheel: {
+          status: 'waiting',
+          lastResult: 0,
+          nextSpinTime: Date.now() + 20000
+        }
+      }
 
       setInterval(() => {
         const now = Date.now()
-        const gameState = {
-          crash: {
-            status,
-            multiplier,
-            startTime,
-            crashPoint
-          },
-          roulette: {
+
+        // Update Crash game
+        if (gameState.crash.status === 'waiting' && now >= gameState.crash.startTime) {
+          gameState.crash.status = 'running'
+          gameState.crash.startTime = now
+        } else if (gameState.crash.status === 'running') {
+          gameState.crash.multiplier += 0.01
+          if (gameState.crash.multiplier >= gameState.crash.crashPoint) {
+            gameState.crash.status = 'crashed'
+            supabaseClient.from('game_history').insert([
+              { game_type: 'crash', result: gameState.crash.multiplier }
+            ])
+          }
+        } else if (gameState.crash.status === 'crashed' && now >= gameState.crash.startTime + 5000) {
+          gameState.crash = {
             status: 'waiting',
-            lastResult: Math.floor(Math.random() * 15) + 1,
-            nextSpinTime: now + 20000
-          },
-          wheel: {
+            multiplier: 1.00,
+            startTime: now + 20000,
+            crashPoint: 1 + Math.random() * 10
+          }
+        }
+
+        // Update Roulette game
+        if (now >= gameState.roulette.nextSpinTime) {
+          const result = Math.floor(Math.random() * 15) + 1
+          supabaseClient.from('game_history').insert([
+            { game_type: 'roulette', result }
+          ])
+          gameState.roulette = {
             status: 'waiting',
-            lastResult: Math.floor(Math.random() * 50) + 1,
+            lastResult: result,
             nextSpinTime: now + 20000
           }
         }
 
-        // Update game state based on time
-        if (status === 'waiting' && now >= startTime) {
-          status = 'running'
-          startTime = now
-        } else if (status === 'running') {
-          multiplier += 0.01
-          if (multiplier >= crashPoint) {
-            status = 'crashed'
-            // Insert game result into history
-            supabaseClient.from('game_history').insert([
-              { game_type: 'crash', result: multiplier }
-            ])
+        // Update Wheel game
+        if (now >= gameState.wheel.nextSpinTime) {
+          const result = Math.floor(Math.random() * 50) + 1
+          supabaseClient.from('game_history').insert([
+            { game_type: 'wheel', result }
+          ])
+          gameState.wheel = {
+            status: 'waiting',
+            lastResult: result,
+            nextSpinTime: now + 20000
           }
-        } else if (status === 'crashed' && now >= startTime + 5000) {
-          status = 'waiting'
-          startTime = now + 20000
-          multiplier = 1.00
-          crashPoint = 1 + Math.random() * 10 // Random crash point between 1x and 11x
         }
 
         controller.enqueue(`data: ${JSON.stringify(gameState)}\n\n`)
