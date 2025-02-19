@@ -4,6 +4,7 @@ import { ArrowLeft } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
+import { Provider } from "@supabase/supabase-js";
 import { toast } from "sonner";
 
 const Auth = () => {
@@ -21,7 +22,7 @@ const Auth = () => {
 
   const loginWithSteam = async () => {
     const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'steam',
+      provider: 'steam' as Provider,
       options: {
         redirectTo: window.location.origin
       }
