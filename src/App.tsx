@@ -14,6 +14,7 @@ import Inventory from "./pages/Inventory";
 import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
 import Auth from "./pages/Auth";
+import Code from "./pages/Code";
 
 const queryClient = new QueryClient();
 
@@ -33,6 +34,7 @@ const App = () => (
             <Route path="/inventory" element={<Inventory />} />
             <Route path="/admin" element={<Admin />} />
             <Route path="/auth" element={<Auth />} />
+            <Route path="/code" element={<Code />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
