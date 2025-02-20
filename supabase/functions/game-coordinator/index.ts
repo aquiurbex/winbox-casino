@@ -6,88 +6,95 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+interface GameState {
+  crash: {
+    status: 'waiting' | 'running' | 'crashed'
+    multiplier: number
+    startTime: number
+    crashPoint: number
+    players: any[]
+    nextGameTime: number
+  }
+  roulette: {
+    status: 'waiting' | 'spinning' | 'complete'
+    lastResult: number
+    nextSpinTime: number
+  }
+  wheel: {
+    status: 'waiting' | 'spinning' | 'complete'
+    lastResult: number
+    nextSpinTime: number
+  }
+}
+
+// Initialize game state
+let gameState: GameState = {
+  crash: {
+    status: 'waiting',
+    multiplier: 1,
+    startTime: Date.now() + 20000,  // Start in 20 seconds
+    crashPoint: generateCrashPoint(),
+    players: [],
+    nextGameTime: Date.now() + 20000
+  },
+  roulette: {
+    status: 'waiting',
+    lastResult: 0,
+    nextSpinTime: Date.now() + 20000
+  },
+  wheel: {
+    status: 'waiting',
+    lastResult: 0,
+    nextSpinTime: Date.now() + 20000
+  }
+}
+
+function generateCrashPoint(): number {
+  // This generates a random crash point between 1 and 10
+  return 1 + Math.random() * 9;
+}
+
+function updateCrashGame() {
+  const now = Date.now()
+
+  // If waiting and it's time to start
+  if (gameState.crash.status === 'waiting' && now >= gameState.crash.nextGameTime) {
+    gameState.crash.status = 'running'
+    gameState.crash.multiplier = 1
+    gameState.crash.startTime = now
+    gameState.crash.players = [] // Reset players for new round
+  }
+  // If running, increase multiplier
+  else if (gameState.crash.status === 'running') {
+    const elapsed = (now - gameState.crash.startTime) / 1000 // seconds
+    gameState.crash.multiplier = Math.pow(Math.E, 0.1 * elapsed)
+    
+    // Check if crashed
+    if (gameState.crash.multiplier >= gameState.crash.crashPoint) {
+      gameState.crash.status = 'crashed'
+      gameState.crash.nextGameTime = now + 5000 // Show crash for 5 seconds
+    }
+  }
+  // If crashed and wait time is over, start new round
+  else if (gameState.crash.status === 'crashed' && now >= gameState.crash.nextGameTime) {
+    gameState.crash.status = 'waiting'
+    gameState.crash.multiplier = 1
+    gameState.crash.crashPoint = generateCrashPoint()
+    gameState.crash.nextGameTime = now + 20000 // Next game in 20 seconds
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
   }
 
-  const supabaseClient = createClient(
-    Deno.env.get('SUPABASE_URL') ?? '',
-    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-  )
-
-  // Start EventSource stream
+  // Create SSE stream
   const stream = new ReadableStream({
     start(controller) {
-      let gameState = {
-        crash: {
-          status: 'waiting',
-          multiplier: 1.00,
-          startTime: Date.now() + 20000,
-          crashPoint: 2.00
-        },
-        roulette: {
-          status: 'waiting',
-          lastResult: 0,
-          nextSpinTime: Date.now() + 20000
-        },
-        wheel: {
-          status: 'waiting',
-          lastResult: 0,
-          nextSpinTime: Date.now() + 20000
-        }
-      }
-
+      // Update game state every 100ms
       setInterval(() => {
-        const now = Date.now()
-
-        // Update Crash game
-        if (gameState.crash.status === 'waiting' && now >= gameState.crash.startTime) {
-          gameState.crash.status = 'running'
-          gameState.crash.startTime = now
-        } else if (gameState.crash.status === 'running') {
-          gameState.crash.multiplier += 0.01
-          if (gameState.crash.multiplier >= gameState.crash.crashPoint) {
-            gameState.crash.status = 'crashed'
-            supabaseClient.from('game_history').insert([
-              { game_type: 'crash', result: gameState.crash.multiplier }
-            ])
-          }
-        } else if (gameState.crash.status === 'crashed' && now >= gameState.crash.startTime + 5000) {
-          gameState.crash = {
-            status: 'waiting',
-            multiplier: 1.00,
-            startTime: now + 20000,
-            crashPoint: 1 + Math.random() * 10
-          }
-        }
-
-        // Update Roulette game
-        if (now >= gameState.roulette.nextSpinTime) {
-          const result = Math.floor(Math.random() * 15) + 1
-          supabaseClient.from('game_history').insert([
-            { game_type: 'roulette', result }
-          ])
-          gameState.roulette = {
-            status: 'waiting',
-            lastResult: result,
-            nextSpinTime: now + 20000
-          }
-        }
-
-        // Update Wheel game
-        if (now >= gameState.wheel.nextSpinTime) {
-          const result = Math.floor(Math.random() * 50) + 1
-          supabaseClient.from('game_history').insert([
-            { game_type: 'wheel', result }
-          ])
-          gameState.wheel = {
-            status: 'waiting',
-            lastResult: result,
-            nextSpinTime: now + 20000
-          }
-        }
-
+        updateCrashGame()
         controller.enqueue(`data: ${JSON.stringify(gameState)}\n\n`)
       }, 100)
     }

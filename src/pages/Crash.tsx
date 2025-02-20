@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react"
 import { ArrowLeft, Coins } from "lucide-react"
 import { Link } from "react-router-dom"
@@ -10,13 +9,12 @@ import { supabase } from "@/integrations/supabase/client"
 
 const Crash = () => {
   const { gameState } = useGame()
-  const [balance, setBalance] = useState(0)
+  const [balance, setBalance] = useState(1000)
   const [betAmount, setBetAmount] = useState(10)
   const [autoCashout, setAutoCashout] = useState<number>(2)
   const [currentBet, setCurrentBet] = useState(0)
   const [hasBet, setHasBet] = useState(false)
   const [points, setPoints] = useState<{x: number; y: number}[]>([])
-  const [session, setSession] = useState<any>(null)
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -43,7 +41,6 @@ const Crash = () => {
   }, [])
 
   useEffect(() => {
-    // Auto cashout logic
     if (gameState.crash.status === 'running' && hasBet && autoCashout) {
       if (gameState.crash.multiplier >= autoCashout) {
         cashOut()
@@ -65,11 +62,6 @@ const Crash = () => {
   }, [gameState.crash])
 
   const placeBet = async () => {
-    if (!session) {
-      toast.error("Please login to play")
-      return
-    }
-    
     if (betAmount > balance) {
       toast.error("Insufficient balance")
       return
@@ -85,29 +77,18 @@ const Crash = () => {
       return
     }
 
-    const { error } = await supabase.rpc('place_bet', {
-      amount: betAmount,
-      game: 'crash'
-    })
-
-    if (error) {
-      toast.error(error.message)
-      return
-    }
-
     setBalance(prev => prev - betAmount)
     setCurrentBet(betAmount)
     setHasBet(true)
 
-    // Broadcast bet to other players
     await supabase
       .channel('crash_game')
       .send({
         type: 'broadcast',
         event: 'crash_bet',
         payload: {
-          id: session.user.id,
-          username: session.user.user_metadata.full_name || 'Anonymous',
+          id: 'test-user-' + Math.random(),
+          username: 'Test User',
           bet: betAmount,
           autoCashout: autoCashout
         }
@@ -119,30 +100,20 @@ const Crash = () => {
 
     const winAmount = Math.floor(currentBet * gameState.crash.multiplier)
     
-    const { error } = await supabase.rpc('cash_out', {
-      amount: winAmount,
-      game: 'crash'
-    })
+    setBalance(prev => prev + winAmount)
+    setHasBet(false)
 
-    if (error) {
-      toast.error(error.message)
-      return
-    }
-
-    // Broadcast cashout to other players
     await supabase
       .channel('crash_game')
       .send({
         type: 'broadcast',
         event: 'crash_cashout',
         payload: {
-          id: session.user.id,
+          id: 'test-user',
           winAmount
         }
       })
 
-    setBalance(prev => prev + winAmount)
-    setHasBet(false)
     toast.success(`Cashed out ${winAmount} coins!`)
   }
 
@@ -254,7 +225,6 @@ const Crash = () => {
             </div>
           )}
 
-          {/* Player List */}
           <div className="mt-8">
             <h3 className="text-lg font-semibold mb-4">Current Players</h3>
             <div className="space-y-2">

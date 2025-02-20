@@ -5,6 +5,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { Provider } from "@supabase/supabase-js";
 
 const Auth = () => {
   const navigate = useNavigate();
@@ -22,7 +23,7 @@ const Auth = () => {
   const loginWithSteam = async () => {
     try {
       const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'steam',
+        provider: 'steam' as Provider,
         options: {
           queryParams: {
             redirect_to: window.location.origin
