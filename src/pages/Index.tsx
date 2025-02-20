@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { Trophy, Users, Coins, CreditCard, Play } from "lucide-react";
+import { Trophy, Users, Coins, CreditCard, Play, Package, LogIn, Code } from "lucide-react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -20,14 +20,6 @@ const games = [{
   maxBet: 200000,
   players: 0,
   path: "/roulette"
-}, {
-  id: 3,
-  title: "Wheel",
-  description: "Spin the wheel for a chance to multiply your coins up to x50!",
-  minBet: 100,
-  maxBet: 50000,
-  players: 0,
-  path: "/wheel"
 }];
 
 const Index = () => {
@@ -35,8 +27,13 @@ const Index = () => {
   const [totalWins, setTotalWins] = useState(0);
   const [totalBets, setTotalBets] = useState(0);
   const [gamePlayers, setGamePlayers] = useState<{[key: string]: number}>({});
+  const [session, setSession] = useState<any>(null);
 
   useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+    });
+
     // Subscribe to realtime presence updates
     const channel = supabase.channel('online-users')
     
@@ -78,6 +75,33 @@ const Index = () => {
   }, [])
 
   return <div className="min-h-screen w-full container py-8 space-y-8">
+      {/* Navigation Bar */}
+      <div className="flex items-center justify-between mb-8">
+        <div className="flex gap-4">
+          {!session ? (
+            <Link to="/auth" className="play-button">
+              <LogIn className="w-4 h-4" />
+              Login with Steam
+            </Link>
+          ) : (
+            <>
+              <Link to="/inventory" className="play-button">
+                <Package className="w-4 h-4" />
+                Inventory
+              </Link>
+              <Link to="/store" className="play-button">
+                <CreditCard className="w-4 h-4" />
+                Store
+              </Link>
+            </>
+          )}
+          <Link to="/code" className="play-button">
+            <Code className="w-4 h-4" />
+            Enter Code
+          </Link>
+        </div>
+      </div>
+
       {/* Header with Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="stats-card">
@@ -121,7 +145,7 @@ const Index = () => {
       {/* Games Grid */}
       <div className="py-0">
         <h2 className="text-2xl font-bold mb-6">Featured Games</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {games.map(game => <Link key={game.id} to={game.path} className="group">
               <div className="game-card rounded-2xl bg-neutral-900 hover:bg-neutral-800">
                 <div className="flex justify-between items-start">

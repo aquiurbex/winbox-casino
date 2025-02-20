@@ -4,7 +4,6 @@ import { ArrowLeft } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import { Provider } from "@supabase/supabase-js";
 import { toast } from "sonner";
 
 const Auth = () => {
@@ -21,14 +20,23 @@ const Auth = () => {
   }, [navigate]);
 
   const loginWithSteam = async () => {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'steam' as Provider,
-      options: {
-        redirectTo: window.location.origin
-      }
-    });
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'steam',
+        options: {
+          queryParams: {
+            redirect_to: window.location.origin
+          },
+          skipBrowserRedirect: false
+        }
+      });
 
-    if (error) {
+      if (error) {
+        console.error('Steam login error:', error);
+        toast.error("Failed to login with Steam");
+      }
+    } catch (err) {
+      console.error('Steam login caught error:', err);
       toast.error("Failed to login with Steam");
     }
   };
