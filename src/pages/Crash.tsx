@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react"
 import { ArrowLeft, Coins } from "lucide-react"
 import { Link } from "react-router-dom"
@@ -10,43 +11,37 @@ import { supabase } from "@/integrations/supabase/client"
 const Crash = () => {
   const { gameState } = useGame()
   const [balance, setBalance] = useState(1000)
-  const [betAmount, setBetAmount] = useState(10)
+  const [betAmount, setBetAmount] = useState(100)
   const [autoCashout, setAutoCashout] = useState<number>(2)
   const [currentBet, setCurrentBet] = useState(0)
   const [hasBet, setHasBet] = useState(false)
   const [points, setPoints] = useState<{x: number; y: number}[]>([])
+  const [countdown, setCountdown] = useState(0)
 
+  // Update countdown timer
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session)
-      if (session) {
-        supabase
-          .from('profiles')
-          .select('coins')
-          .eq('id', session.user.id)
-          .single()
-          .then(({ data }) => {
-            if (data) {
-              setBalance(data.coins)
-            }
-          })
+    const interval = setInterval(() => {
+      if (gameState.crash.status === 'waiting') {
+        setCountdown(Math.max(0, Math.floor((gameState.crash.nextGameTime - Date.now()) / 1000)))
       }
-    })
+    }, 100)
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session)
-    })
-
-    return () => subscription.unsubscribe()
-  }, [])
+    return () => clearInterval(interval)
+  }, [gameState.crash.nextGameTime])
 
   useEffect(() => {
+    // Auto cashout logic
     if (gameState.crash.status === 'running' && hasBet && autoCashout) {
       if (gameState.crash.multiplier >= autoCashout) {
         cashOut()
       }
     }
-  }, [gameState.crash.multiplier, hasBet, autoCashout])
+
+    // Reset bet when game crashes
+    if (gameState.crash.status === 'crashed') {
+      setHasBet(false)
+    }
+  }, [gameState.crash.multiplier, gameState.crash.status, hasBet, autoCashout])
 
   useEffect(() => {
     if (gameState.crash.status === 'running') {
@@ -57,7 +52,6 @@ const Crash = () => {
       }])
     } else if (gameState.crash.status === 'waiting') {
       setPoints([])
-      setHasBet(false)
     }
   }, [gameState.crash])
 
@@ -77,10 +71,12 @@ const Crash = () => {
       return
     }
 
+    // Update local balance for testing
     setBalance(prev => prev - betAmount)
     setCurrentBet(betAmount)
     setHasBet(true)
 
+    // Broadcast bet to other players
     await supabase
       .channel('crash_game')
       .send({
@@ -100,9 +96,11 @@ const Crash = () => {
 
     const winAmount = Math.floor(currentBet * gameState.crash.multiplier)
     
+    // Update local balance for testing
     setBalance(prev => prev + winAmount)
     setHasBet(false)
 
+    // Broadcast cashout to other players
     await supabase
       .channel('crash_game')
       .send({
@@ -116,8 +114,6 @@ const Crash = () => {
 
     toast.success(`Cashed out ${winAmount} coins!`)
   }
-
-  const nextGameIn = Math.max(0, Math.floor((gameState.crash.nextGameTime - Date.now()) / 1000))
 
   return (
     <div className="min-h-screen w-full container py-8 space-y-8">
@@ -164,7 +160,7 @@ const Crash = () => {
 
           {gameState.crash.status === 'waiting' && (
             <div className="text-center">
-              <p className="text-white/60">Next game in {nextGameIn} seconds</p>
+              <p className="text-white/60">Next game in {countdown} seconds</p>
             </div>
           )}
 
@@ -210,7 +206,7 @@ const Crash = () => {
               ) : (
                 <button 
                   onClick={cashOut}
-                  disabled={gameState.crash.status !== 'running'} 
+                  disabled={gameState.crash.status !== 'running' || gameState.crash.multiplier < 1.1} 
                   className="w-full py-2 rounded-lg bg-neon-green/20 border border-neon-green/40 hover:bg-neon-green/30 transition-all duration-300 text-white font-medium animate-pulse"
                 >
                   Cash Out ({Math.floor(currentBet * gameState.crash.multiplier)} coins)
@@ -246,7 +242,7 @@ const Crash = () => {
         </div>
       </div>
     </div>
-  );
-};
+  )
+}
 
-export default Crash;
+export default Crash
