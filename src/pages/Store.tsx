@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ArrowLeft, Coins, Upload } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,23 @@ import { toast } from "sonner";
 const Store = () => {
   const [skinUrl, setSkinUrl] = useState("");
   const [loading, setLoading] = useState(false);
+  const [balance, setBalance] = useState(0);
+
+  useEffect(() => {
+    // Fetch user's balance
+    const fetchBalance = async () => {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('coins')
+        .single();
+      
+      if (profile) {
+        setBalance(profile.coins || 0);
+      }
+    };
+
+    fetchBalance();
+  }, []);
 
   const tradeSkin = async () => {
     try {
@@ -23,28 +40,30 @@ const Store = () => {
       }
 
       // Get price from Steam Market
-      const { data, error } = await supabase.functions.invoke('steam-market', {
+      const { data: marketData, error: marketError } = await supabase.functions.invoke('steam-market', {
         body: { market_hash_name: marketHashName }
       });
 
-      if (error) {
-        console.error('Steam market error:', error);
+      if (marketError || !marketData) {
+        console.error('Steam market error:', marketError);
         toast.error("Failed to fetch skin price");
         return;
       }
 
-      if (data.coins) {
-        // Award coins to user
-        const { error: updateError } = await supabase.rpc('award_skin_coins', {
-          amount: data.coins
-        });
+      if (marketData.coins) {
+        // Use a direct update query instead of RPC
+        const { error: updateError } = await supabase
+          .from('profiles')
+          .update({ coins: balance + marketData.coins })
+          .eq('id', (await supabase.auth.getUser()).data.user?.id);
 
         if (updateError) {
           toast.error("Failed to update balance");
           return;
         }
 
-        toast.success(`Successfully traded skin for ${data.coins} coins!`);
+        setBalance(prev => prev + marketData.coins);
+        toast.success(`Successfully traded skin for ${marketData.coins} coins!`);
         setSkinUrl("");
       }
     } catch (err) {
@@ -68,7 +87,7 @@ const Store = () => {
           </div>
           <div>
             <p className="text-sm text-white/60">Balance</p>
-            <p className="text-lg font-semibold">0 coins</p>
+            <p className="text-lg font-semibold">{balance} coins</p>
           </div>
         </div>
       </div>

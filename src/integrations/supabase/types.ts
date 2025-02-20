@@ -204,6 +204,12 @@ export type Database = {
         }
         Returns: boolean
       }
+      award_skin_coins: {
+        Args: {
+          amount: number
+        }
+        Returns: boolean
+      }
       cash_out: {
         Args: {
           amount: number
