@@ -2,12 +2,23 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 import { supabase } from '@/integrations/supabase/client'
 
+interface Player {
+  id: string
+  username: string
+  bet: number
+  autoCashout?: number
+  cashedOut?: boolean
+  winAmount?: number
+}
+
 interface GameState {
   crash: {
     status: 'waiting' | 'running' | 'crashed'
     multiplier: number
     startTime: number
     crashPoint: number
+    players: Player[]
+    nextGameTime: number
   }
   roulette: {
     status: 'waiting' | 'spinning' | 'complete'
@@ -39,8 +50,10 @@ export const GameProvider = ({ children }: { children: React.ReactNode }) => {
     crash: {
       status: 'waiting',
       multiplier: 1,
-      startTime: Date.now() + 20000, // Start in 20 seconds
-      crashPoint: 2.00
+      startTime: Date.now() + 20000,
+      crashPoint: 2.00,
+      players: [],
+      nextGameTime: Date.now() + 20000
     },
     roulette: {
       status: 'waiting',
@@ -59,12 +72,12 @@ export const GameProvider = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     const eventSource = new EventSource(
       `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/game-coordinator/game-state`
-    );
+    )
 
     eventSource.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      setGameState(data);
-    };
+      const data = JSON.parse(event.data)
+      setGameState(data)
+    }
 
     // Subscribe to game history updates
     const historySubscription = supabase
@@ -74,9 +87,9 @@ export const GameProvider = ({ children }: { children: React.ReactNode }) => {
       .limit(50)
       .then(({ data }) => {
         if (data) {
-          setHistory(data as GameHistory[]);
+          setHistory(data as GameHistory[])
         }
-      });
+      })
 
     const channel = supabase
       .channel('game_history')
@@ -88,36 +101,59 @@ export const GameProvider = ({ children }: { children: React.ReactNode }) => {
           table: 'game_history'
         },
         (payload) => {
-          setHistory(prev => [payload.new as GameHistory, ...prev].slice(0, 50));
+          setHistory(prev => [payload.new as GameHistory, ...prev].slice(0, 50))
         }
       )
-      .subscribe();
+      .subscribe()
 
-    // Update Steam user information and check for CS2 rewards
-    const updateSteamInfo = async () => {
-      const session = await supabase.auth.getSession();
-      if (session?.data?.session?.user?.app_metadata?.provider === 'steam') {
-        // Get Steam profile and CS2 stats
-        // Add coins for kills if username contains "skins com"
-        // This would be implemented in a separate Edge Function
-      }
-    };
-
-    const steamInfoInterval = setInterval(updateSteamInfo, 60000); // Check every minute
+    // Subscribe to crash game players
+    const crashChannel = supabase
+      .channel('crash_game')
+      .on(
+        'broadcast',
+        { event: 'crash_bet' },
+        ({ payload }) => {
+          setGameState(prev => ({
+            ...prev,
+            crash: {
+              ...prev.crash,
+              players: [...prev.crash.players, payload]
+            }
+          }))
+        }
+      )
+      .on(
+        'broadcast',
+        { event: 'crash_cashout' },
+        ({ payload }) => {
+          setGameState(prev => ({
+            ...prev,
+            crash: {
+              ...prev.crash,
+              players: prev.crash.players.map(player =>
+                player.id === payload.id
+                  ? { ...player, cashedOut: true, winAmount: payload.winAmount }
+                  : player
+              )
+            }
+          }))
+        }
+      )
+      .subscribe()
 
     return () => {
-      eventSource.close();
-      supabase.removeChannel(channel);
-      clearInterval(steamInfoInterval);
-    };
-  }, []);
+      eventSource.close()
+      supabase.removeChannel(channel)
+      supabase.removeChannel(crashChannel)
+    }
+  }, [])
 
   return (
     <GameContext.Provider value={{ gameState, history }}>
       {children}
     </GameContext.Provider>
-  );
-};
+  )
+}
 
 export const useGame = () => {
   const context = useContext(GameContext)

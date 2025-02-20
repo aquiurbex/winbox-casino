@@ -1,21 +1,22 @@
 
-import { useState, useEffect } from "react";
-import { ArrowLeft, Coins } from "lucide-react";
-import { Link } from "react-router-dom";
-import { Progress } from "@/components/ui/progress";
-import { Input } from "@/components/ui/input";
-import { toast } from "sonner";
-import { useGame } from "@/contexts/GameContext";
-import { supabase } from "@/integrations/supabase/client";
+import { useState, useEffect } from "react"
+import { ArrowLeft, Coins } from "lucide-react"
+import { Link } from "react-router-dom"
+import { Progress } from "@/components/ui/progress"
+import { Input } from "@/components/ui/input"
+import { toast } from "sonner"
+import { useGame } from "@/contexts/GameContext"
+import { supabase } from "@/integrations/supabase/client"
 
 const Crash = () => {
-  const { gameState } = useGame();
-  const [balance, setBalance] = useState(0);
-  const [betAmount, setBetAmount] = useState(10);
-  const [currentBet, setCurrentBet] = useState(0);
-  const [hasBet, setHasBet] = useState(false);
-  const [points, setPoints] = useState<{x: number; y: number}[]>([]);
-  const [session, setSession] = useState<any>(null);
+  const { gameState } = useGame()
+  const [balance, setBalance] = useState(0)
+  const [betAmount, setBetAmount] = useState(10)
+  const [autoCashout, setAutoCashout] = useState<number>(2)
+  const [currentBet, setCurrentBet] = useState(0)
+  const [hasBet, setHasBet] = useState(false)
+  const [points, setPoints] = useState<{x: number; y: number}[]>([])
+  const [session, setSession] = useState<any>(null)
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -40,6 +41,15 @@ const Crash = () => {
 
     return () => subscription.unsubscribe()
   }, [])
+
+  useEffect(() => {
+    // Auto cashout logic
+    if (gameState.crash.status === 'running' && hasBet && autoCashout) {
+      if (gameState.crash.multiplier >= autoCashout) {
+        cashOut()
+      }
+    }
+  }, [gameState.crash.multiplier, hasBet, autoCashout])
 
   useEffect(() => {
     if (gameState.crash.status === 'running') {
@@ -88,6 +98,20 @@ const Crash = () => {
     setBalance(prev => prev - betAmount)
     setCurrentBet(betAmount)
     setHasBet(true)
+
+    // Broadcast bet to other players
+    await supabase
+      .channel('crash_game')
+      .send({
+        type: 'broadcast',
+        event: 'crash_bet',
+        payload: {
+          id: session.user.id,
+          username: session.user.user_metadata.full_name || 'Anonymous',
+          bet: betAmount,
+          autoCashout: autoCashout
+        }
+      })
   }
 
   const cashOut = async () => {
@@ -105,12 +129,27 @@ const Crash = () => {
       return
     }
 
+    // Broadcast cashout to other players
+    await supabase
+      .channel('crash_game')
+      .send({
+        type: 'broadcast',
+        event: 'crash_cashout',
+        payload: {
+          id: session.user.id,
+          winAmount
+        }
+      })
+
     setBalance(prev => prev + winAmount)
     setHasBet(false)
     toast.success(`Cashed out ${winAmount} coins!`)
   }
 
-  return <div className="min-h-screen w-full container py-8 space-y-8">
+  const nextGameIn = Math.max(0, Math.floor((gameState.crash.nextGameTime - Date.now()) / 1000))
+
+  return (
+    <div className="min-h-screen w-full container py-8 space-y-8">
       <div className="flex justify-between items-center">
         <Link to="/" className="flex items-center gap-2 text-white/60 hover:text-white transition-colors">
           <ArrowLeft className="w-4 h-4" />
@@ -127,7 +166,7 @@ const Crash = () => {
         </div>
       </div>
 
-      <div className="glass-card p-8 max-w-2xl mx-auto">
+      <div className="glass-card p-8 max-w-4xl mx-auto">
         <div className="space-y-6">
           <div className={`h-64 w-full relative ${gameState.crash.status === 'crashed' ? "crash-animation" : ""}`}>
             <svg className="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
@@ -152,12 +191,18 @@ const Crash = () => {
             </div>
           </div>
 
+          {gameState.crash.status === 'waiting' && (
+            <div className="text-center">
+              <p className="text-white/60">Next game in {nextGameIn} seconds</p>
+            </div>
+          )}
+
           <Progress 
             value={(gameState.crash.multiplier - 1) / 10 * 100} 
             className={`transition-all duration-300 ${gameState.crash.status === 'running' ? "opacity-100" : "opacity-60"}`} 
           />
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
               <label className="text-sm text-white/60">Bet Amount</label>
               <Input 
@@ -166,6 +211,18 @@ const Crash = () => {
                 onChange={e => setBetAmount(Number(e.target.value))} 
                 min={100} 
                 max={balance} 
+                disabled={hasBet || gameState.crash.status !== 'waiting'} 
+                className="bg-casino-accent rounded-lg" 
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm text-white/60">Auto Cashout</label>
+              <Input 
+                type="number" 
+                value={autoCashout} 
+                onChange={e => setAutoCashout(Number(e.target.value))} 
+                min={1.1} 
+                step={0.1}
                 disabled={hasBet || gameState.crash.status !== 'waiting'} 
                 className="bg-casino-accent rounded-lg" 
               />
@@ -196,9 +253,30 @@ const Crash = () => {
               Crashed at {gameState.crash.multiplier.toFixed(2)}x
             </div>
           )}
+
+          {/* Player List */}
+          <div className="mt-8">
+            <h3 className="text-lg font-semibold mb-4">Current Players</h3>
+            <div className="space-y-2">
+              {gameState.crash.players.map(player => (
+                <div key={player.id} className="flex items-center justify-between p-2 bg-black/20 rounded-lg">
+                  <span>{player.username}</span>
+                  <div className="flex items-center gap-4">
+                    <span>{player.bet.toLocaleString()} coins</span>
+                    {player.cashedOut && (
+                      <span className="text-neon-green">
+                        +{player.winAmount?.toLocaleString()} coins
+                      </span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
-    </div>;
+    </div>
+  );
 };
 
 export default Crash;
