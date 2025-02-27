@@ -1,7 +1,7 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ArrowLeft, Gift } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
@@ -9,19 +9,57 @@ import { toast } from "sonner";
 
 const Code = () => {
   const [code, setCode] = useState("");
+  const [session, setSession] = useState<any>(null);
+  const navigate = useNavigate();
 
-  const redeemCode = async () => {
-    const { error } = await supabase.rpc('use_promo_code', {
-      code_input: code.toUpperCase()
+  useEffect(() => {
+    // Check if user is logged in
+    const checkAuth = async () => {
+      const { data } = await supabase.auth.getSession();
+      setSession(data.session);
+    };
+
+    checkAuth();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
     });
 
-    if (error) {
-      toast.error("Invalid or already used code");
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const redeemCode = async () => {
+    // Check if user is logged in
+    if (!session) {
+      toast.error("Please login to redeem a code");
+      navigate("/auth");
       return;
     }
 
-    toast.success("Code redeemed successfully!");
-    setCode("");
+    // Check if the code is valid
+    if (code.toUpperCase() !== "COINS") {
+      toast.error("Invalid code");
+      return;
+    }
+
+    // Redeem the code
+    try {
+      const { error } = await supabase.rpc('award_skin_coins', { 
+        amount: 20 
+      });
+
+      if (error) {
+        console.error("Error redeeming code:", error);
+        toast.error("Failed to redeem code");
+        return;
+      }
+
+      toast.success("Successfully redeemed 20 coins!");
+      setCode("");
+    } catch (err) {
+      console.error("Error:", err);
+      toast.error("An error occurred while redeeming the code");
+    }
   };
 
   return (
