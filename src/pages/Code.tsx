@@ -36,25 +36,19 @@ const Code = () => {
       return;
     }
 
-    // Check if the code is valid
-    if (code.toUpperCase() !== "COINS") {
-      toast.error("Invalid code");
-      return;
-    }
-
-    // Redeem the code
+    // Use the promo code
     try {
-      const { error } = await supabase.rpc('award_skin_coins', { 
-        amount: 20 
+      const { error } = await supabase.rpc('use_promo_code', {
+        code_input: code.toUpperCase()
       });
 
       if (error) {
         console.error("Error redeeming code:", error);
-        toast.error("Failed to redeem code");
+        toast.error("Invalid or already used code");
         return;
       }
 
-      toast.success("Successfully redeemed 20 coins!");
+      toast.success("Code redeemed successfully!");
       setCode("");
     } catch (err) {
       console.error("Error:", err);

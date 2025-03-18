@@ -15,6 +15,7 @@ const Admin = () => {
   const [adminCredentials, setAdminCredentials] = useState({ username: 'admin', password: 'admin' });
   const [users, setUsers] = useState<any[]>([]);
   const [selectedUser, setSelectedUser] = useState<string | null>(null);
+  const [coinAmount, setCoinAmount] = useState<number>(0);
   const [skins, setSkins] = useState<any[]>([]);
 
   useEffect(() => {
@@ -72,6 +73,37 @@ const Admin = () => {
 
     toast.success("User coins updated");
     loadUsers();
+  };
+
+  const addCoinsToUser = async (userId: string, amount: number) => {
+    // First get current balance
+    const { data, error: fetchError } = await supabase
+      .from('profiles')
+      .select('coins')
+      .eq('id', userId)
+      .single();
+    
+    if (fetchError || !data) {
+      toast.error("Failed to fetch user balance");
+      return;
+    }
+    
+    const currentCoins = data.coins || 0;
+    const newBalance = currentCoins + amount;
+    
+    const { error } = await supabase
+      .from('profiles')
+      .update({ coins: newBalance })
+      .eq('id', userId);
+
+    if (error) {
+      toast.error("Failed to update user coins");
+      return;
+    }
+
+    toast.success(`${amount > 0 ? "Added" : "Removed"} ${Math.abs(amount)} coins to user`);
+    loadUsers();
+    setCoinAmount(0);
   };
 
   const addSkinToUser = async (userId: string, skinId: string) => {
@@ -156,29 +188,60 @@ const Admin = () => {
             <h2 className="text-xl font-semibold mb-4">Manage Users</h2>
             <div className="grid gap-4">
               {users.map(user => (
-                <div key={user.id} className="p-4 bg-casino-accent rounded-lg flex items-center justify-between">
-                  <div>
-                    <p className="font-medium">{user.username || 'Anonymous'}</p>
-                    <p className="text-sm text-white/60">{user.coins} coins</p>
-                  </div>
-                  <div className="flex gap-2">
-                    <Input
-                      type="number"
-                      placeholder="Amount"
-                      className="w-32"
-                      onChange={(e) => {
-                        if (user.id === selectedUser) {
-                          updateUserCoins(user.id, parseInt(e.target.value));
-                        }
-                      }}
-                    />
+                <div key={user.id} className="p-4 bg-casino-accent rounded-lg">
+                  <div className="flex items-center justify-between mb-4">
+                    <div>
+                      <p className="font-medium">{user.username || 'Anonymous'}</p>
+                      <p className="text-sm text-white/60">{user.coins} coins</p>
+                    </div>
                     <Button
                       variant="outline"
-                      onClick={() => setSelectedUser(user.id)}
+                      onClick={() => setSelectedUser(selectedUser === user.id ? null : user.id)}
                     >
-                      Update Coins
+                      {selectedUser === user.id ? "Deselect" : "Select User"}
                     </Button>
                   </div>
+                  
+                  {selectedUser === user.id && (
+                    <div className="space-y-4 mt-2 border-t border-white/10 pt-4">
+                      <div>
+                        <h3 className="text-sm font-medium mb-2">Set Absolute Balance</h3>
+                        <div className="flex gap-2">
+                          <Input
+                            type="number"
+                            placeholder="New balance"
+                            className="w-full"
+                            onChange={(e) => setCoinAmount(parseInt(e.target.value) || 0)}
+                          />
+                          <Button
+                            variant="outline"
+                            onClick={() => updateUserCoins(user.id, coinAmount)}
+                          >
+                            Set Balance
+                          </Button>
+                        </div>
+                      </div>
+
+                      <div>
+                        <h3 className="text-sm font-medium mb-2">Add/Remove Coins</h3>
+                        <div className="flex gap-2">
+                          <Input
+                            type="number"
+                            placeholder="Amount (use negative to subtract)"
+                            className="w-full"
+                            value={coinAmount}
+                            onChange={(e) => setCoinAmount(parseInt(e.target.value) || 0)}
+                          />
+                          <Button
+                            variant="outline"
+                            onClick={() => addCoinsToUser(user.id, coinAmount)}
+                          >
+                            Update
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

@@ -28,10 +28,45 @@ const Index = () => {
   const [totalBets, setTotalBets] = useState(0);
   const [gamePlayers, setGamePlayers] = useState<{[key: string]: number}>({});
   const [session, setSession] = useState<any>(null);
+  const [userBalance, setUserBalance] = useState(0);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    const fetchSessionAndBalance = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
       setSession(session);
+      
+      if (session) {
+        // Fetch user balance
+        const { data } = await supabase
+          .from('profiles')
+          .select('coins')
+          .single();
+          
+        if (data) {
+          setUserBalance(data.coins || 0);
+        }
+      }
+    };
+    
+    fetchSessionAndBalance();
+
+    // Subscribe to auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      setSession(session);
+      
+      if (session) {
+        // Fetch user balance on auth change
+        const { data } = await supabase
+          .from('profiles')
+          .select('coins')
+          .single();
+          
+        if (data) {
+          setUserBalance(data.coins || 0);
+        }
+      } else {
+        setUserBalance(0);
+      }
     });
 
     // Subscribe to realtime presence updates
@@ -71,6 +106,7 @@ const Index = () => {
 
     return () => {
       supabase.removeChannel(channel)
+      subscription.unsubscribe()
     }
   }, [])
 
@@ -100,6 +136,18 @@ const Index = () => {
             Enter Code
           </Link>
         </div>
+        
+        {session && (
+          <div className="stats-card">
+            <div className="w-8 h-8 rounded-full bg-neon-green/10 flex items-center justify-center">
+              <Coins className="w-4 h-4 text-neon-green" />
+            </div>
+            <div>
+              <p className="text-sm text-white/60">Balance</p>
+              <p className="text-lg font-semibold">{userBalance} coins</p>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Header with Stats */}

@@ -1,8 +1,47 @@
 
+import { useState, useEffect } from "react";
 import { ArrowLeft, Coins } from "lucide-react";
 import { Link } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 
 const Inventory = () => {
+  const [balance, setBalance] = useState(0);
+  const [session, setSession] = useState<any>(null);
+
+  useEffect(() => {
+    // Check if user is logged in and fetch balance
+    const checkAuth = async () => {
+      const { data } = await supabase.auth.getSession();
+      setSession(data.session);
+      
+      if (data.session) {
+        fetchBalance();
+      }
+    };
+
+    checkAuth();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+      if (session) {
+        fetchBalance();
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const fetchBalance = async () => {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('coins')
+      .single();
+    
+    if (data && !error) {
+      setBalance(data.coins || 0);
+    }
+  };
+
   return (
     <div className="min-h-screen w-full container py-8 space-y-8">
       <div className="flex justify-between items-center">
@@ -16,7 +55,7 @@ const Inventory = () => {
           </div>
           <div>
             <p className="text-sm text-white/60">Balance</p>
-            <p className="text-lg font-semibold">0 coins</p>
+            <p className="text-lg font-semibold">{balance} coins</p>
           </div>
         </div>
       </div>
