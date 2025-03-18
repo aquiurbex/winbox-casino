@@ -1,40 +1,65 @@
 
-import { useEffect } from "react";
+import { useState } from "react";
 import { ArrowLeft } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 const Auth = () => {
   const navigate = useNavigate();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [username, setUsername] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (session) {
-        navigate('/');
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, [navigate]);
-
-  const loginWithSteam = async () => {
+  const handleLogin = async () => {
     try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'steam',
-        options: {
-          redirectTo: window.location.origin
-        }
+      setLoading(true);
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
       });
 
       if (error) {
-        console.error('Steam login error:', error);
-        toast.error("Failed to login with Steam");
+        toast.error(error.message);
+      } else {
+        navigate('/');
       }
     } catch (err) {
-      console.error('Steam login caught error:', err);
-      toast.error("Failed to login with Steam");
+      console.error('Login error:', err);
+      toast.error("Failed to login");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSignUp = async () => {
+    try {
+      setLoading(true);
+      const { error: signUpError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            username,
+          },
+        }
+      });
+
+      if (signUpError) {
+        toast.error(signUpError.message);
+        return;
+      }
+
+      toast.success("Registration successful! Please check your email to confirm your account.");
+    } catch (err) {
+      console.error('Registration error:', err);
+      toast.error("Failed to register");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -48,10 +73,68 @@ const Auth = () => {
       </div>
 
       <div className="glass-card p-8 max-w-md mx-auto">
-        <h1 className="text-2xl font-bold text-center mb-8">Login</h1>
-        <Button onClick={loginWithSteam} className="w-full">
-          Login with Steam
-        </Button>
+        <Tabs defaultValue="login" className="w-full">
+          <TabsList className="grid w-full grid-cols-2 mb-8">
+            <TabsTrigger value="login">Login</TabsTrigger>
+            <TabsTrigger value="register">Register</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="login" className="space-y-4">
+            <h1 className="text-2xl font-bold text-center mb-8">Login</h1>
+            <div className="space-y-4">
+              <Input
+                type="email"
+                placeholder="Email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+              <Input
+                type="password"
+                placeholder="Password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+              <Button 
+                onClick={handleLogin} 
+                className="w-full"
+                disabled={loading}
+              >
+                {loading ? "Loading..." : "Login"}
+              </Button>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="register" className="space-y-4">
+            <h1 className="text-2xl font-bold text-center mb-8">Register</h1>
+            <div className="space-y-4">
+              <Input
+                type="text"
+                placeholder="Username"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+              />
+              <Input
+                type="email"
+                placeholder="Email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+              <Input
+                type="password"
+                placeholder="Password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+              <Button 
+                onClick={handleSignUp} 
+                className="w-full"
+                disabled={loading}
+              >
+                {loading ? "Loading..." : "Register"}
+              </Button>
+            </div>
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );
