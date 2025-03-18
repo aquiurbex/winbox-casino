@@ -38,15 +38,19 @@ const Auth = () => {
   };
 
   const handleSignUp = async () => {
-    if (!email || !password || !username) {
-      toast.error("Please fill in all fields");
+    // Remove email validation
+    if (!password || !username) {
+      toast.error("Please fill in username and password");
       return;
     }
+
+    // Generate a unique email if not provided
+    const emailToUse = email.trim() || `${username.toLowerCase().replace(/\s+/g, '')}_${Math.random().toString(36).substring(2, 10)}@example.com`;
 
     try {
       setLoading(true);
       const { data, error } = await supabase.auth.signUp({
-        email,
+        email: emailToUse,
         password,
         options: {
           data: {
@@ -118,21 +122,23 @@ const Auth = () => {
             <div className="space-y-4">
               <Input
                 type="text"
-                placeholder="Username"
+                placeholder="Username (required)"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
+                required
               />
               <Input
                 type="email"
-                placeholder="Email"
+                placeholder="Email (optional)"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
               />
               <Input
                 type="password"
-                placeholder="Password"
+                placeholder="Password (required)"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                required
               />
               <Button 
                 onClick={handleSignUp} 
