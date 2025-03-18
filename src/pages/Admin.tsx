@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { ArrowLeft, User, Package, Lock } from "lucide-react";
 import { Link, Navigate } from "react-router-dom";
@@ -7,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { AdminUserManagement } from "@/components/AdminUserManagement";
 
 const Admin = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -76,7 +76,6 @@ const Admin = () => {
   };
 
   const addCoinsToUser = async (userId: string, amount: number) => {
-    // First get current balance
     const { data, error: fetchError } = await supabase
       .from('profiles')
       .select('coins')
@@ -203,44 +202,7 @@ const Admin = () => {
                   </div>
                   
                   {selectedUser === user.id && (
-                    <div className="space-y-4 mt-2 border-t border-white/10 pt-4">
-                      <div>
-                        <h3 className="text-sm font-medium mb-2">Set Absolute Balance</h3>
-                        <div className="flex gap-2">
-                          <Input
-                            type="number"
-                            placeholder="New balance"
-                            className="w-full"
-                            onChange={(e) => setCoinAmount(parseInt(e.target.value) || 0)}
-                          />
-                          <Button
-                            variant="outline"
-                            onClick={() => updateUserCoins(user.id, coinAmount)}
-                          >
-                            Set Balance
-                          </Button>
-                        </div>
-                      </div>
-
-                      <div>
-                        <h3 className="text-sm font-medium mb-2">Add/Remove Coins</h3>
-                        <div className="flex gap-2">
-                          <Input
-                            type="number"
-                            placeholder="Amount (use negative to subtract)"
-                            className="w-full"
-                            value={coinAmount}
-                            onChange={(e) => setCoinAmount(parseInt(e.target.value) || 0)}
-                          />
-                          <Button
-                            variant="outline"
-                            onClick={() => addCoinsToUser(user.id, coinAmount)}
-                          >
-                            Update
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
+                    <AdminUserManagement user={user} onUpdate={loadUsers} />
                   )}
                 </div>
               ))}

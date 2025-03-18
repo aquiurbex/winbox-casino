@@ -26,6 +26,7 @@ const Auth = () => {
       if (error) {
         toast.error(error.message);
       } else {
+        toast.success("Successfully logged in!");
         navigate('/');
       }
     } catch (err) {
@@ -37,9 +38,14 @@ const Auth = () => {
   };
 
   const handleSignUp = async () => {
+    if (!email || !password || !username) {
+      toast.error("Please fill in all fields");
+      return;
+    }
+
     try {
       setLoading(true);
-      const { error: signUpError } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -49,12 +55,15 @@ const Auth = () => {
         }
       });
 
-      if (signUpError) {
-        toast.error(signUpError.message);
+      if (error) {
+        toast.error(error.message);
         return;
       }
 
-      toast.success("Registration successful! Please check your email to confirm your account.");
+      if (data.user) {
+        toast.success("Registration successful! You can now login.");
+        navigate('/');
+      }
     } catch (err) {
       console.error('Registration error:', err);
       toast.error("Failed to register");
