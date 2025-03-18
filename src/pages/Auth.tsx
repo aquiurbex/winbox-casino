@@ -10,16 +10,25 @@ import { toast } from "sonner";
 
 const Auth = () => {
   const navigate = useNavigate();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
   const handleLogin = async () => {
+    if (!username || !password) {
+      toast.error("Please fill in all fields");
+      return;
+    }
+
     try {
       setLoading(true);
+      
+      // Since Supabase requires an email for authentication, we'll generate a dummy one
+      // Using the username as the basis for login
+      const dummyEmail = `${username.toLowerCase().replace(/\s+/g, '')}@example.com`;
+      
       const { error } = await supabase.auth.signInWithPassword({
-        email,
+        email: dummyEmail,
         password,
       });
 
@@ -38,19 +47,20 @@ const Auth = () => {
   };
 
   const handleSignUp = async () => {
-    // Remove email validation
-    if (!password || !username) {
-      toast.error("Please fill in username and password");
+    if (!username || !password) {
+      toast.error("Please fill in all fields");
       return;
     }
 
-    // Generate a unique email if not provided
-    const emailToUse = email.trim() || `${username.toLowerCase().replace(/\s+/g, '')}_${Math.random().toString(36).substring(2, 10)}@example.com`;
-
     try {
       setLoading(true);
+      
+      // Create a deterministic email from username so it's always the same for the same username
+      // This allows users to log in with just their username later
+      const dummyEmail = `${username.toLowerCase().replace(/\s+/g, '')}@example.com`;
+      
       const { data, error } = await supabase.auth.signUp({
-        email: emailToUse,
+        email: dummyEmail,
         password,
         options: {
           data: {
@@ -96,10 +106,10 @@ const Auth = () => {
             <h1 className="text-2xl font-bold text-center mb-8">Login</h1>
             <div className="space-y-4">
               <Input
-                type="email"
-                placeholder="Email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                type="text"
+                placeholder="Username"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
               />
               <Input
                 type="password"
@@ -122,20 +132,14 @@ const Auth = () => {
             <div className="space-y-4">
               <Input
                 type="text"
-                placeholder="Username (required)"
+                placeholder="Username"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 required
               />
               <Input
-                type="email"
-                placeholder="Email (optional)"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-              <Input
                 type="password"
-                placeholder="Password (required)"
+                placeholder="Password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
